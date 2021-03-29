@@ -147,6 +147,7 @@ PUB LastConnected{}: ptr_addr
 PUB NodeAddress(addr): ptr_curr_addr
 ' Read device node address
 '   Returns: pointer to string containing 48-bit MAC address
+'   NOTE: Parameter is unused, for API compatibility with other wireless device drivers
     cmdresp(string("AT+ADDR?"))
     return st.getfield(@_rxbuff, 2, ":")
 
