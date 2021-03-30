@@ -21,7 +21,10 @@ CON
 
     BLE_RX      = 8
     BLE_TX      = 9
-    BLE_BAUD    = 9600                          ' only 9600 supported, for now
+
+    ' 4800, 9600, 19200, 38400, 57600, 115200, 230400
+    ' See DataRate() in driver for instructions on changing this
+    BLE_BAUD    = 9600
 ' --
 
 OBJ
@@ -46,7 +49,7 @@ PUB Main{} | i, text_len
             repeat 3
                 ble.newline
             time.sleep(2)
-        time.msleep(10)                         ' optional inter-char delay
+'        time.msleep(10)                         ' optional inter-char delay
 
 PUB Setup{}
 

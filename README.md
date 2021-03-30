@@ -7,7 +7,7 @@ This is a P8X32A/Propeller, ~~P2X8C4M64P/Propeller 2~~ driver object for HM10 Bl
 
 ## Salient Features
 
-* UART connection at common data rates from 1200 to 230400bps
+* UART connection at common data rates from 4800 to 230400bps
 * Change module name
 * Read module's MAC address
 * Read module's firmware version

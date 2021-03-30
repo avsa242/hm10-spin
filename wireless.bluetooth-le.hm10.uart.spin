@@ -58,7 +58,7 @@ PUB Init(BLE_RX, BLE_TX, BLE_BAUD): status
 ' Start driver using custom I/O settings and bitrate
 '   BLE_BAUD: 9600 (currently only supported rate)
     if lookdown(BLE_RX: 0..31) and lookdown(BLE_TX: 0..31) and {
-}   lookdown(BLE_BAUD: 9600)
+}   lookdown(BLE_BAUD: 4800, 9600, 19200, 38400, 57600, 115200, 230400)
         if (status := uart.startrxtx(BLE_RX, BLE_TX, 0, BLE_BAUD))
             time.msleep(30)
             if deviceid{} == OK                 ' validate device
@@ -71,6 +71,10 @@ PUB Init(BLE_RX, BLE_TX, BLE_BAUD): status
     '   connected to a remote device, due to the initial check for
     '   the 'OK' response.
     return FALSE
+
+PUB Deinit{}
+' Stop the driver
+    uart.stop{}
 
 PUB Defaults{}
 ' Factory default settings
@@ -172,19 +176,19 @@ PUB Count{}: c
 
 PUB DataRate(rate): curr_rate | cmd, tmp
 ' Set data rate, in bps
-'   Valid values: 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400
+'   Valid values: 4800, 9600, 19200, 38400, 57600, 115200, 230400
 '   Any other value polls the device and returns the current setting
-'   NOTE: This affects both OTA and serial interface data rates. When updating
-'       data rates, the driver must first be started with the existing rate.
-'       The updated rate takes effect when reset or power cycled
-'   CAUTION: When rates of 1200 or 2400 are used, the module will no longer
-'       respond to AT commands. In order to restore serial connectivity, the
-'       module's I/O pin P1_3 must be grounded temporarily. The module will
-'       then change rates to 9600.
-'       Ensure this pin is accessible on your module before using such
-'       data rates!
+'   NOTE: This affects both on-air and serial interface data rates. When
+'       updating data rates, the driver must first be started with the existing
+'       rate. The updated rate takes effect when reset or power cycled.
+'   Example: Current data rate 9600, new rate desired: 19200
+'   ble.init(RX, TX, 9600)
+'   ble.datarate(19200)
+'   ble.reset                                   ' change takes effect here
+'   ble.deinit                                  ' stop the ble driver
+'   ble.init(RX, TX, 19200)                     ' restart it at the new rate
     case rate
-        1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400:
+        4800, 9600, 19200, 38400, 57600, 115200, 230400:
             rate := lookdownz(rate: 9600, 19200, 38400, 57600, 115200, 4800, {
 }           2400, 1200, 230400)
             cmd := string("AT+BAUD#")
