@@ -268,6 +268,12 @@ PUB TXPower(pwr): curr_pwr | cmd
             curr_pwr := int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
             return lookupz(curr_pwr: -23, -6, 0, 6)
 
+PUB Unpair{}
+' Remove pairing/bonding information
+'   NOTE: The module must be reset (e.g., Reset(), or power cycle)
+'       for this to take effect
+    cmdresp(string("AT+ERASE"))
+
 PUB Version{}: ver | cmd, tmp
 ' Get firmware version
     tmp := st.right(@ver, @_rxbuff, 3)          ' version is rightmost 3 chars
