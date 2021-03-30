@@ -7,7 +7,7 @@ This is a P8X32A/Propeller, ~~P2X8C4M64P/Propeller 2~~ driver object for HM10 Bl
 
 ## Salient Features
 
-* UART connection at 9600bps
+* UART connection at common data rates from 1200 to 230400bps
 * Change module name
 * Read module's MAC address
 * Read module's firmware version
@@ -15,6 +15,7 @@ This is a P8X32A/Propeller, ~~P2X8C4M64P/Propeller 2~~ driver object for HM10 Bl
 * Set advertising interval
 * Set transmit power
 * Set module system LED mode (show connection state as flashing or steady-state)
+* Set serial/OTA data rate
 * Authentication: set PIN code, authentication mode (none, PIN every time, or pair device), remove stored pairing info
 * Integration with lib.terminal.spin, for full terminal I/O support (Char(), Bin(), Dec(), Hex(), printf(), etc)
 
@@ -38,12 +39,11 @@ P1/SPIN1:
 
 * Very early in development - may malfunction, or outright fail to build
 * Supports slave role only
-* Only supports 9600bps connection
 * No validation performed on responses to commands sent (i.e., was the command "OK")
 
 ## TODO
 
 - [ ] Port to P2/SPIN2
-- [ ] Add support for other bitrates
+- [x] Add support for other bitrates
 - [ ] Add support for master role
 - [ ] TBD

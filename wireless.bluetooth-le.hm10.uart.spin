@@ -170,6 +170,33 @@ PUB Count{}: c
 ' Get number of characters in receive buffer
     return uart.count{}
 
+PUB DataRate(rate): curr_rate | cmd, tmp
+' Set data rate, in bps
+'   Valid values: 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400
+'   Any other value polls the device and returns the current setting
+'   NOTE: This affects both OTA and serial interface data rates. When updating
+'       data rates, the driver must first be started with the existing rate.
+'       The updated rate takes effect when reset or power cycled
+'   CAUTION: When rates of 1200 or 2400 are used, the module will no longer
+'       respond to AT commands. In order to restore serial connectivity, the
+'       module's I/O pin P1_3 must be grounded temporarily. The module will
+'       then change rates to 9600.
+'       Ensure this pin is accessible on your module before using such
+'       data rates!
+    case rate
+        1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400:
+            rate := lookdownz(rate: 9600, 19200, 38400, 57600, 115200, 4800, {
+}           2400, 1200, 230400)
+            cmd := string("AT+BAUD#")
+            st.replacechar(cmd, "#", lookupz(rate: "0".."8"))
+            cmdresp(cmd)
+        other:
+            cmd := string("AT+BAUD?")
+            cmdresp(cmd)
+            curr_rate := int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
+            return lookupz(curr_rate: 9600, 19200, 38400, 57600, 115200, 4800,{
+}           2400, 1200, 230400)
+
 PUB DeviceID{}: id
 ' Read device identification
 '   Returns: $4B4F ('OK')
