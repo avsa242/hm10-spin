@@ -228,6 +228,22 @@ PUB RXCheck{}: r
 '       ASCII value of pending character
     return uart.rxcheck{}
 
+PUB TXPower(pwr): curr_pwr | cmd
+' Set transmit power, in dBm
+'   Valid values: -23, -6, 0, 6
+'   Any other value polls the device and returns the current setting
+    case pwr
+        -23, -6, 0, 6:
+            pwr := lookdownz(pwr: -23, -6, 0, 6)
+            cmd := string("AT+POWE#")
+            st.replacechar(cmd, "#", lookupz(pwr & 3: "0".."3"))
+            cmdresp(cmd)
+        other:
+            cmd := string("AT+POWE?")
+            cmdresp(cmd)
+            curr_pwr := int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
+            return lookupz(curr_pwr: -23, -6, 0, 6)
+
 PUB Version{}: ver | cmd, tmp
 ' Get firmware version
     tmp := st.right(@ver, @_rxbuff, 3)          ' version is rightmost 3 chars
