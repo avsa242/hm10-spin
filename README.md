@@ -37,6 +37,7 @@ P1/SPIN1:
 * Very early in development - may malfunction, or outright fail to build
 * Supports slave role only
 * Only supports 9600bps connection
+* No validation performed on responses to commands sent (i.e., was the command "OK")
 
 ## TODO
 

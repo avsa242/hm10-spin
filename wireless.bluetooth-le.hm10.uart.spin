@@ -27,6 +27,8 @@ CON
 
     OK                  = $4B4F                 ' "OK"
 
+    BUFFSZ              = 32
+
 OBJ
 
     time    : "time"
@@ -36,7 +38,7 @@ OBJ
 
 VAR
 
-    byte _rxbuff[32], _tries
+    byte _rxbuff[BUFFSZ], _tries
 
 PUB Null{}
 ' This is not a top-level object
@@ -59,6 +61,12 @@ PUB Init(BLE_RX, BLE_TX, BLE_BAUD): status
     '   the 'OK' response.
     return FALSE
 
+PUB Defaults{}
+' Factory default settings
+'   NOTE: This resets ALL settings to factory default, including user-data
+'   such as module name, PIN code, etc
+    cmdresp(string("AT+RENEW"))
+
 PUB AdvInterval(intv): curr_intv | cmd
 ' Set advertising interval, in milliseconds
 '   Valid values:
@@ -77,9 +85,9 @@ PUB AdvInterval(intv): curr_intv | cmd
             cmd := string("AT+ADVI?")
             cmdresp(cmd)
             ' settings data is on the right side of the ':' in the response
-            ' from the module (e.g., '9' if the module responds "AT+GET:9")
-            ' grab it, convert it to binary form and look up the corresponding
-            ' time interval in the table
+            '   from the module (e.g., '9' if the module responds "AT+Get:9")
+            ' Grab it, convert it to binary form, and look up the corresponding
+            '   time interval in the table
             curr_intv := int.strtobase(st.getfield(@_rxbuff, 2, ":"), NHEX)
             return lookupz(curr_intv: 100, 152, 211, 318, 417, 546, 760, 852, {
 }           1022, 1285, 2000, 3000, 4000, 5000, 6000, 7000)
@@ -109,6 +117,7 @@ PUB Char(c)
 
 PUB CharIn{}: c
 ' Receive character from module (blocking)
+'   Returns: ASCII code of character received
     return uart.charin{}
 
 PUB ConnNotify(state): curr_state | cmd
@@ -117,7 +126,6 @@ PUB ConnNotify(state): curr_state | cmd
 '   NOTE:
 '       When module connects, the notification 'OK+CONN' will be sent
 '       When module disconnects, the notification 'OK+LOST' will be sent
-
     case ||(state)
         0, 1:
             cmd := string("AT+NOTI#")
@@ -189,22 +197,23 @@ PUB Reset{}
 
 PUB RXCheck{}: r
 ' Check if there's a character received (non-blocking)
+'   Returns:
+'       -1 if no character pending
+'       ASCII value of pending character
     return uart.rxcheck{}
 
 PUB Version{}: ver | cmd, tmp
 ' Get firmware version
-'   Returns: integer firmware version
-    cmdresp(string("AT+VERS?"))
     tmp := st.right(@ver, @_rxbuff, 3)          ' version is rightmost 3 chars
-    return int.strtobase(tmp, 10)               ' convert ASCII to binary
+    return int.strtobase(tmp, NDEC)             ' convert ASCII to binary
 
 PRI cmdResp(ptr_cmdstr): resp | i, chr
 ' Send command and store the response
-    bytefill(@_rxbuff, 0, 32)
+    bytefill(@_rxbuff, 0, BUFFSZ)
     uart.flush{}
     _tries := 1
-    repeat                                      ' wait for data from module
-        str(ptr_cmdstr)
+    repeat                                      ' keep sending the cmd to the
+        str(ptr_cmdstr)                         '   module, and wait for resp.
         time.msleep(30)                         ' give the module time to resp.
         _tries++                                ' otherwise, might get hung up
     until uart.count{}                          ' in this loop
