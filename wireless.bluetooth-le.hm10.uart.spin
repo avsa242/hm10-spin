@@ -5,7 +5,7 @@
     Description: Driver for UART-connected HM10 BLE modules
     Copyright (c) 2021
     Started Mar 28, 2021
-    Updated Mar 29, 2021
+    Updated Mar 30, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -169,6 +169,19 @@ PUB NodeName(ptr_name): curr_name | cmd, tmp
         other:
             cmdresp(string("AT+NAME?"))
             return st.getfield(@_rxbuff, 2, ":")
+
+PUB PinCode(pin): curr_pin | cmd
+' Set PIN code
+'   Valid values: 000000..999999
+'   Any other value polls the device and returns the current setting
+    case pin
+        0..999999:
+            cmd := string("AT+PASS######")
+            st.replace(cmd, string("######"), int.deczeroed(pin, 6))
+            cmdresp(cmd)
+        other:
+            cmdresp(string("AT+PASS?"))
+            return int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
 
 PUB Reset{}
 ' Perform soft-reset

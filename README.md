@@ -13,6 +13,7 @@ This is a P8X32A/Propeller, ~~P2X8C4M64P/Propeller 2~~ driver object for HM10 Bl
 * Read module's firmware version
 * Read last connected device's MAC address
 * Set advertising interval
+* Set PIN code
 * Integration with lib.terminal.spin, for full terminal I/O support (Char(), Bin(), Dec(), Hex(), printf(), etc)
 
 ## Requirements
