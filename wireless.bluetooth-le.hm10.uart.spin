@@ -22,6 +22,13 @@ CON
     ALL_BLE             = 0
     HM_ONLY             = 1
 
+' Authentication modes
+    NOPIN               = 0
+    AUTH_NOPIN          = 1
+    AUTH_PIN            = 2
+    AUTH_PAIR           = 3
+
+' Internal-use constants
     NDEC                = 10
     NHEX                = 16
 
@@ -108,6 +115,25 @@ PUB AdvType(type): curr_type | cmd
             cmdresp(cmd)
         other:
             cmd := string("AT+ADTY?")
+            cmdresp(cmd)
+            return int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
+
+PUB AuthMode(mode): curr_mode | cmd
+' Set authentication mode
+'   Valid values:
+'       NOPIN (0): No PIN code required
+'       AUTH_NOPIN (1): authenticate, but no PIN required
+'       AUTO_PIN (2): authenticate, PIN required (every connection)
+'       AUTH_PAIR (3): authenticate, PIN required (only once per pairing)
+    if version{} < 515                          ' per the datasheet, don't use
+        return                                  ' if firmware is older than 515
+    case mode
+        NOPIN, AUTH_NOPIN, AUTH_PIN, AUTH_PAIR:
+            cmd := string("AT+TYPE#")
+            st.replacechar(cmd, "#", lookupz(mode & 3: "0".."3"))
+            cmdresp(cmd)
+        other:
+            cmd := string("AT+TYPE?")
             cmdresp(cmd)
             return int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
 
