@@ -14,6 +14,7 @@ This is a P8X32A/Propeller, ~~P2X8C4M64P/Propeller 2~~ driver object for HM10 Bl
 * Read last connected device's MAC address
 * Set advertising interval
 * Set transmit power
+* Set module system LED mode (show connection state as flashing or steady-state)
 * Authentication: set PIN code, authentication mode (none, PIN every time, or pair device)
 * Integration with lib.terminal.spin, for full terminal I/O support (Char(), Bin(), Dec(), Hex(), printf(), etc)
 

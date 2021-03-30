@@ -28,6 +28,10 @@ CON
     AUTH_PIN            = 2
     AUTH_PAIR           = 3
 
+' HM-10 system LED pin modes
+    FLASH                = 0
+    STEADY              = 1
+
 ' Internal-use constants
     NDEC                = 10
     NHEX                = 16
@@ -227,6 +231,26 @@ PUB RXCheck{}: r
 '       -1 if no character pending
 '       ASCII value of pending character
     return uart.rxcheck{}
+
+PUB SysLEDMode(mode): curr_mode | cmd
+' Set output mode of module's system LED pin
+'   Valid values:
+'      *FLASH (0): flash 500ms high/500ms low when unconnected,
+'           steady when connected
+'       STEADY (1): low when unconnected, high when connected
+'   NOTE: STEADY is more useful when monitoring of the module's connection
+'       state by the Propeller is desired
+'   NOTE: The module must be reset (e.g., Reset(), or power cycle)
+'       for this to take effect
+    case mode
+        FLASH, STEADY:
+            cmd := string("AT+PIO1#")
+            st.replacechar(cmd, "#", mode + 48)
+            cmdresp(cmd)
+        other:
+            cmd := string("AT+PIO1?")
+            cmdresp(cmd)
+            return int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
 
 PUB TXPower(pwr): curr_pwr | cmd
 ' Set transmit power, in dBm
