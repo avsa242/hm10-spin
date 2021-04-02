@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: HM10-Recv-Demo.spin
+    Filename: HMXX-TX-Demo.spin
     Author: Jesse Burt
-    Description: Simple receive demo for HM10 BLE modules
+    Description: Simple transmit demo for HMXX BLE modules
     Copyright (c) 2021
     Started Mar 28, 2021
-    Updated Mar 29, 2021
+    Updated Apr 2, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -21,7 +21,10 @@ CON
 
     BLE_RX      = 8
     BLE_TX      = 9
-    BLE_BAUD    = 9600                          ' only 9600 supported, for now
+
+    ' 4800, 9600, 19200, 38400, 57600, 115200, 230400
+    ' See DataRate() in driver for instructions on changing this
+    BLE_BAUD    = 9600
 ' --
 
 OBJ
@@ -29,15 +32,26 @@ OBJ
     cfg     : "core.con.boardcfg.flip"
     ser     : "com.serial.terminal.ansi"
     time    : "time"
-    ble     : "wireless.bluetooth-le.hm10.uart"
+    ble     : "wireless.bluetooth-le.hmxx.uart"
 
-PUB Main{}
+PUB Main{} | i, text_len
 
     setup{}
-    repeat                                      ' print data received from BLE
-        ser.char(ble.charin{})                  ' to the terminal
+    text_len := strsize(@text)-1                ' get length/last char of text
+    i := 0
+    repeat                                      ' continuously send text
+        ble.char(byte[@text][i++])              '   char by char
+        if i > text_len                         ' send notification if the
+            i := 0                              '   end of the text is reached
+            repeat 3
+                ble.newline
+            ble.strln(string("*** DONE ***"))
+            repeat 3
+                ble.newline
+            time.sleep(2)
+'        time.msleep(10)                         ' optional inter-char delay
 
-PUB Setup
+PUB Setup{}
 
     ser.start(SER_BAUD)
     time.msleep(30)
@@ -45,12 +59,16 @@ PUB Setup
     ser.strln(string("Serial terminal started"))
 
     if ble.init(BLE_RX, BLE_TX, BLE_BAUD)
-        ser.strln(string("HM10 BLE driver started"))
+        ser.strln(string("HMxx BLE driver started"))
     else
-        ser.strln(string("HM10 BLE driver failed to start - halting"))
+        ser.strln(string("HMxx BLE driver failed to start - halting"))
         repeat
 
 DAT
+
+    text        file "lincoln.txt"
+    EOT         byte 0                          ' terminate string
+
 {
     --------------------------------------------------------------------------------------------------------
     TERMS OF USE: MIT License

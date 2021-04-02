@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: wireless.bluetooth-le.hm10.uart.spin
+    Filename: wireless.bluetooth-le.hmxx.uart.spin
     Author: Jesse Burt
-    Description: Driver for UART-connected HM10 BLE modules
+    Description: Driver for UART-connected HM-XX BLE modules
     Copyright (c) 2021
     Started Mar 28, 2021
-    Updated Mar 30, 2021
+    Updated Apr 2, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -29,7 +29,7 @@ CON
     AUTH_PAIR           = 3
 
 ' HM-10 system LED pin modes
-    FLASH                = 0
+    FLASH               = 0
     STEADY              = 1
 
 ' Internal-use constants
