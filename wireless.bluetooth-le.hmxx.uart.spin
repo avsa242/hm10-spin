@@ -3,9 +3,9 @@
     Filename: wireless.bluetooth-le.hmxx.uart.spin
     Author: Jesse Burt
     Description: Driver for UART-connected HM-XX BLE modules
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Mar 28, 2021
-    Updated Apr 2, 2021
+    Updated Apr 7, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -31,6 +31,10 @@ CON
 ' HM-10 system LED pin modes
     FLASH               = 0
     STEADY              = 1
+
+' Device roles
+    PERIPH              = 0
+    CENTRAL             = 1
 
 ' Internal-use constants
     NDEC                = 10
@@ -256,6 +260,21 @@ PUB Reset{}
 ' Perform soft-reset
     cmdresp(string("AT+RESET"))
 
+PUB Role(role): curr_role | cmd
+' Set device role
+'   Valid values:
+'      *PERIPH (0): Peripheral
+'       CENTRAL (1): Central
+    case role
+        PERIPH, CENTRAL:
+            cmd := string("AT+ROLE#")
+            st.replacechar(cmd, "#", role + "0")
+            cmdresp(cmd)
+        other:
+            cmd := string("AT+ROLE?")
+            cmdresp(cmd)
+            return int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
+
 PUB RXCheck{}: r
 ' Check if there's a character received (non-blocking)
 '   Returns:
@@ -307,6 +326,7 @@ PUB Unpair{}
 
 PUB Version{}: ver | cmd, tmp
 ' Get firmware version
+    cmdresp(string("AT+VERS?"))
     tmp := st.right(@ver, @_rxbuff, 3)          ' version is rightmost 3 chars
     return int.strtobase(tmp, NDEC)             ' convert ASCII to binary
 

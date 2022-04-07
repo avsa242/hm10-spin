@@ -39,6 +39,7 @@ PUB Main{} | i, text_len
     setup{}
     text_len := strsize(@text)-1                ' get length/last char of text
     i := 0
+    ble.role(ble#PERIPH)
     repeat                                      ' continuously send text
         ble.char(byte[@text][i++])              '   char by char
         if i > text_len                         ' send notification if the
