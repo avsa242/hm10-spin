@@ -5,7 +5,7 @@
     Description: Driver for UART-connected HM-XX BLE modules
     Copyright (c) 2022
     Started Mar 28, 2021
-    Updated Apr 7, 2022
+    Updated Apr 9, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -47,7 +47,7 @@ CON
 OBJ
 
     time    : "time"
-    uart    : "com.serial"
+    uart    : "com.serial.terminal"
     st      : "string"
     int     : "string.integer"
 
@@ -260,6 +260,19 @@ PUB Reset{}
 ' Perform soft-reset
     cmdresp(string("AT+RESET"))
 
+PUB ResolveNames(state): curr_state | cmd
+' Resolve BLE MAC addresses to names (when possible) during scans
+'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Any other value polls the device and returns the current setting
+    case ||(state)
+        0, 1:
+            cmd := string("AT+SHOW#")
+            st.replace(cmd, string("#"), int.deczeroed((state & 1), 1))
+            cmdresp(cmd)
+        other:
+            cmdresp(string("AT+SHOW?"))
+            return (int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC) == 1)
+
 PUB Role(role): curr_role | cmd
 ' Set device role
 '   Valid values:
@@ -281,6 +294,25 @@ PUB RXCheck{}: r
 '       -1 if no character pending
 '       ASCII value of pending character
     return uart.rxcheck{}
+
+PUB ScanTime(tm): curr_tm | cmd
+' Set length of scan, in seconds
+'   Valid values:
+'       HM-10 (as of v545): 1..9 (default: 3)
+'       HM-19 (as of v114): 1..5 (default: 3)
+'   Any other value polls the device and returns the current setting
+    case tm
+        1..9:
+            cmd := string("AT+SCAN#")
+            st.replace(cmd, string("#"), int.deczeroed(tm, 1))
+            cmdresp(cmd)
+        other:
+            cmdresp(string("AT+SCAN?"))
+            return int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
+
+PUB RdStr_Max(ptr_str, max_len)
+' Read string from UART into ptr_str, up to max_len bytes
+    uart.strinmax(ptr_str, max_len)
 
 PUB SysLEDMode(mode): curr_mode | cmd
 ' Set output mode of module's system LED pin
@@ -329,6 +361,21 @@ PUB Version{}: ver | cmd, tmp
     cmdresp(string("AT+VERS?"))
     tmp := st.right(@ver, @_rxbuff, 3)          ' version is rightmost 3 chars
     return int.strtobase(tmp, NDEC)             ' convert ASCII to binary
+
+PUB WorkMode(role): curr_role | cmd
+' Set device working mode
+'   Valid values:
+'      *IMMED (0): immediate
+'       IDLE (1): idle; don't do anything until commanded
+    case role
+        0, 1:
+            cmd := string("AT+IMME#")
+            st.replacechar(cmd, "#", role + "0")
+            cmdresp(cmd)
+        other:
+            cmd := string("AT+IMME?")
+            cmdresp(cmd)
+            return int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
 
 PRI cmdResp(ptr_cmdstr): resp | i, chr
 ' Send command and store the response
