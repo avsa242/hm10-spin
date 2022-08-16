@@ -7,7 +7,7 @@
         * scan/display all peripheral nodes found
     Copyright (c) 2022
     Started Apr 9, 2022
-    Updated Apr 9, 2022
+    Updated Aug 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -38,7 +38,6 @@ OBJ
     time    : "time"
     ble     : "wireless.bluetooth-le.hmxx.uart"
     str     : "string"
-    int     : "string.integer"
 
 VAR
 
