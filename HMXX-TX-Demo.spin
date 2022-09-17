@@ -3,9 +3,9 @@
     Filename: HMXX-TX-Demo.spin
     Author: Jesse Burt
     Description: Simple transmit demo for HMXX BLE modules
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started Mar 28, 2021
-    Updated Apr 2, 2021
+    Updated Sep 17, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -34,12 +34,11 @@ OBJ
     time    : "time"
     ble     : "wireless.bluetooth-le.hmxx.uart"
 
-PUB Main{} | i, text_len
+PUB main{} | i, text_len
 
     setup{}
     text_len := strsize(@text)-1                ' get length/last char of text
     i := 0
-    ble.role(ble#PERIPH)
     repeat                                      ' continuously send text
         ble.char(byte[@text][i++])              '   char by char
         if i > text_len                         ' send notification if the
@@ -52,7 +51,7 @@ PUB Main{} | i, text_len
             time.sleep(2)
 '        time.msleep(10)                         ' optional inter-char delay
 
-PUB Setup{}
+PUB setup{}
 
     ser.start(SER_BAUD)
     time.msleep(30)
@@ -65,28 +64,30 @@ PUB Setup{}
         ser.strln(string("HMxx BLE driver failed to start - halting"))
         repeat
 
+    ble.workmode(ble#IMMED)
+    ble.role(ble#PERIPH)
+
 DAT
 
     text        file "lincoln.txt"
     EOT         byte 0                          ' terminate string
 
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+

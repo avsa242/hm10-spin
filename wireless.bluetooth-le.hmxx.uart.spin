@@ -12,31 +12,35 @@
 
 CON
 
-' Advertising types
+    { Advertising types }
     ADV_SCANRESP_CONN   = 0
     LASTDEV_ONLY        = 1
     ADV_SCANRESP        = 2
     ADV_ONLY            = 3
 
-' BLE module type filter
+    { BLE module type filter }
     ALL_BLE             = 0
     HM_ONLY             = 1
 
-' Authentication modes
+    { Authentication modes }
     NOPIN               = 0
     AUTH_NOPIN          = 1
     AUTH_PIN            = 2
     AUTH_PAIR           = 3
 
-' HM-10 system LED pin modes
+    { HM-10 system LED pin modes }
     FLASH               = 0
     STEADY              = 1
 
-' Device roles
+    { Device roles }
     PERIPH              = 0
     CENTRAL             = 1
 
-' Internal-use constants
+    { Work modes }
+    IMMED               = 0
+    IDLE                = 1
+
+    { Internal-use constants }
     NDEC                = 10
     NHEX                = 16
 
@@ -49,16 +53,15 @@ OBJ
     time    : "time"
     uart    : "com.serial.terminal"
     st      : "string"
-    int     : "string.integer"
 
 VAR
 
     byte _rxbuff[BUFFSZ], _tries
 
-PUB Null{}
+PUB null{}
 ' This is not a top-level object
 
-PUB Init(BLE_RX, BLE_TX, BLE_BAUD): status
+PUB init(BLE_RX, BLE_TX, BLE_BAUD): status
 ' Start driver using custom I/O settings and bitrate
 '   BLE_BAUD: 9600 (currently only supported rate)
     if lookdown(BLE_RX: 0..31) and lookdown(BLE_TX: 0..31) and {
@@ -76,17 +79,17 @@ PUB Init(BLE_RX, BLE_TX, BLE_BAUD): status
     '   the 'OK' response.
     return FALSE
 
-PUB Deinit{}
+PUB deinit{}
 ' Stop the driver
     uart.stop{}
 
-PUB Defaults{}
+PUB defaults{}
 ' Factory default settings
 '   NOTE: This resets ALL settings to factory default, including user-data
 '   such as module name, PIN code, etc
     cmdresp(string("AT+RENEW"))
 
-PUB AdvInterval(intv): curr_intv | cmd
+PUB advinterval(intv): curr_intv | cmd
 ' Set advertising interval, in milliseconds
 '   Valid values:
 '       100, 152, 211, 318, 417, 546, 760, 852, 1022, *1285, 2000, 3000, 4000,
@@ -107,11 +110,11 @@ PUB AdvInterval(intv): curr_intv | cmd
             '   from the module (e.g., '9' if the module responds "AT+Get:9")
             ' Grab it, convert it to binary form, and look up the corresponding
             '   time interval in the table
-            curr_intv := int.strtobase(st.getfield(@_rxbuff, 2, ":"), NHEX)
+            curr_intv := st.atoib(st.getfield(@_rxbuff, 2, ":"), NHEX)
             return lookupz(curr_intv: 100, 152, 211, 318, 417, 546, 760, 852, {
 }           1022, 1285, 2000, 3000, 4000, 5000, 6000, 7000)
 
-PUB AdvType(type): curr_type | cmd
+PUB advtype(type): curr_type | cmd
 ' Set advertising type
 '   Valid values:
 '      *ADV_SCANRESP_CONN (0): Advertising, ScanResponse, Connectable
@@ -128,9 +131,9 @@ PUB AdvType(type): curr_type | cmd
         other:
             cmd := string("AT+ADTY?")
             cmdresp(cmd)
-            return int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
+            return st.atoi(st.getfield(@_rxbuff, 2, ":"))
 
-PUB AuthMode(mode): curr_mode | cmd
+PUB authmode(mode): curr_mode | cmd
 ' Set authentication mode
 '   Valid values:
 '       NOPIN (0): No PIN code required
@@ -147,18 +150,18 @@ PUB AuthMode(mode): curr_mode | cmd
         other:
             cmd := string("AT+TYPE?")
             cmdresp(cmd)
-            return int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
+            return st.atoi(st.getfield(@_rxbuff, 2, ":"))
 
-PUB Char(c)
+PUB char(c)
 ' Send character
     uart.char(c)
 
-PUB CharIn{}: c
+PUB charin{}: c
 ' Receive character from module (blocking)
 '   Returns: ASCII code of character received
     return uart.charin{}
 
-PUB ConnNotify(state): curr_state | cmd
+PUB connnotify(state): curr_state | cmd
 ' Enable (dis)connection notifications
 '   Valid values: TRUE (-1 or 1), *FALSE (0)
 '   NOTE:
@@ -172,13 +175,13 @@ PUB ConnNotify(state): curr_state | cmd
         other:
             cmd := string("AT+NOTI?")
             cmdresp(cmd)
-            return int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC) == 1
+            return st.atoi(st.getfield(@_rxbuff, 2, ":")) == 1
 
-PUB Count{}: c
+PUB count{}: c
 ' Get number of characters in receive buffer
     return uart.count{}
 
-PUB DataRate(rate): curr_rate | cmd, tmp
+PUB datarate(rate): curr_rate | cmd, tmp
 ' Set data rate, in bps
 '   Valid values: 4800, 9600, 19200, 38400, 57600, 115200, 230400
 '   Any other value polls the device and returns the current setting
@@ -201,30 +204,30 @@ PUB DataRate(rate): curr_rate | cmd, tmp
         other:
             cmd := string("AT+BAUD?")
             cmdresp(cmd)
-            curr_rate := int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
+            curr_rate := st.atoi(st.getfield(@_rxbuff, 2, ":"))
             return lookupz(curr_rate: 9600, 19200, 38400, 57600, 115200, 4800,{
 }           2400, 1200, 230400)
 
-PUB DeviceID{}: id
+PUB deviceid{}: id
 ' Read device identification
 '   Returns: $4B4F ('OK')
     cmdresp(string("AT"))
     bytemove(@id, @_rxbuff, 2)
 
-PUB LastConnected{}: ptr_addr
+PUB lastconnected{}: ptr_addr
 ' Get last connected device's address
 '   Returns: pointer to string containing MAC address of device
     cmdresp(string("AT+RADD?"))
     return st.getfield(@_rxbuff, 2, ":")
 
-PUB NodeAddress(addr): ptr_curr_addr
+PUB nodeaddress(addr): ptr_addr
 ' Read device node address
 '   Returns: pointer to string containing 48-bit MAC address
 '   NOTE: Parameter is unused, for API compatibility with other wireless device drivers
     cmdresp(string("AT+ADDR?"))
     return st.getfield(@_rxbuff, 2, ":")
 
-PUB NodeName(ptr_name): curr_name | cmd, tmp
+PUB nodename(ptr_name): curr_name | cmd, tmp
 ' Set BLE module name
 '   Valid values: pointer to string from 1 to 12 chars in length
 '   Any other value polls the device and returns the current setting
@@ -243,37 +246,37 @@ PUB NodeName(ptr_name): curr_name | cmd, tmp
             cmdresp(string("AT+NAME?"))
             return st.getfield(@_rxbuff, 2, ":")
 
-PUB PinCode(pin): curr_pin | cmd
+PUB pincode(pin): curr_pin | cmd
 ' Set PIN code
 '   Valid values: 000000..999999
 '   Any other value polls the device and returns the current setting
     case pin
         0..999999:
             cmd := string("AT+PASS######")
-            st.replace(cmd, string("######"), int.deczeroed(pin, 6))
+            st.replace(cmd, string("######"), st.decz(pin, 6))
             cmdresp(cmd)
         other:
             cmdresp(string("AT+PASS?"))
-            return int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
+            return st.atoi(st.getfield(@_rxbuff, 2, ":"))
 
-PUB Reset{}
+PUB reset{}
 ' Perform soft-reset
     cmdresp(string("AT+RESET"))
 
-PUB ResolveNames(state): curr_state | cmd
+PUB resolvenames(state): curr_state | cmd
 ' Resolve BLE MAC addresses to names (when possible) during scans
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the device and returns the current setting
     case ||(state)
         0, 1:
             cmd := string("AT+SHOW#")
-            st.replace(cmd, string("#"), int.deczeroed((state & 1), 1))
+            st.replace(cmd, string("#"), st.dec((state & 1)))
             cmdresp(cmd)
         other:
             cmdresp(string("AT+SHOW?"))
-            return (int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC) == 1)
+            return (st.atoi(st.getfield(@_rxbuff, 2, ":")) == 1)
 
-PUB Role(role): curr_role | cmd
+PUB role(role): curr_role | cmd
 ' Set device role
 '   Valid values:
 '      *PERIPH (0): Peripheral
@@ -286,16 +289,16 @@ PUB Role(role): curr_role | cmd
         other:
             cmd := string("AT+ROLE?")
             cmdresp(cmd)
-            return int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
+            return st.atoi(st.getfield(@_rxbuff, 2, ":"))
 
-PUB RXCheck{}: r
+PUB rxcheck{}: r
 ' Check if there's a character received (non-blocking)
 '   Returns:
 '       -1 if no character pending
 '       ASCII value of pending character
     return uart.rxcheck{}
 
-PUB ScanTime(tm): curr_tm | cmd
+PUB scantime(tm): curr_tm | cmd
 ' Set length of scan, in seconds
 '   Valid values:
 '       HM-10 (as of v545): 1..9 (default: 3)
@@ -304,17 +307,17 @@ PUB ScanTime(tm): curr_tm | cmd
     case tm
         1..9:
             cmd := string("AT+SCAN#")
-            st.replace(cmd, string("#"), int.deczeroed(tm, 1))
+            st.replace(cmd, string("#"), st.dec(tm))
             cmdresp(cmd)
         other:
             cmdresp(string("AT+SCAN?"))
-            return int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
+            return st.atoi(st.getfield(@_rxbuff, 2, ":"))
 
-PUB RdStr_Max(ptr_str, max_len)
+PUB rdstr_max(ptr_str, max_len)
 ' Read string from UART into ptr_str, up to max_len bytes
     uart.strinmax(ptr_str, max_len)
 
-PUB SysLEDMode(mode): curr_mode | cmd
+PUB sysledmode(mode): curr_mode | cmd
 ' Set output mode of module's system LED pin
 '   Valid values:
 '      *FLASH (0): flash 500ms high/500ms low when unconnected,
@@ -332,9 +335,9 @@ PUB SysLEDMode(mode): curr_mode | cmd
         other:
             cmd := string("AT+PIO1?")
             cmdresp(cmd)
-            return int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
+            return st.atoi(st.getfield(@_rxbuff, 2, ":"))
 
-PUB TXPower(pwr): curr_pwr | cmd
+PUB txpower(pwr): curr_pwr | cmd
 ' Set transmit power, in dBm
 '   Valid values: -23, -6, 0, 6
 '   Any other value polls the device and returns the current setting
@@ -347,22 +350,21 @@ PUB TXPower(pwr): curr_pwr | cmd
         other:
             cmd := string("AT+POWE?")
             cmdresp(cmd)
-            curr_pwr := int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
+            curr_pwr := st.atoi(st.getfield(@_rxbuff, 2, ":"))
             return lookupz(curr_pwr: -23, -6, 0, 6)
 
-PUB Unpair{}
+PUB unpair{}
 ' Remove pairing/bonding information
 '   NOTE: The module must be reset (e.g., Reset(), or power cycle)
 '       for this to take effect
     cmdresp(string("AT+ERASE"))
 
-PUB Version{}: ver | cmd, tmp
+PUB version{}: ver
 ' Get firmware version
     cmdresp(string("AT+VERS?"))
-    tmp := st.right(@ver, @_rxbuff, 3)          ' version is rightmost 3 chars
-    return int.strtobase(tmp, NDEC)             ' convert ASCII to binary
+    return st.atoi(st.right(@_rxbuff, 3))
 
-PUB WorkMode(role): curr_role | cmd
+PUB workmode(role): curr_role | cmd
 ' Set device working mode
 '   Valid values:
 '      *IMMED (0): immediate
@@ -375,9 +377,9 @@ PUB WorkMode(role): curr_role | cmd
         other:
             cmd := string("AT+IMME?")
             cmdresp(cmd)
-            return int.strtobase(st.getfield(@_rxbuff, 2, ":"), NDEC)
+            return st.atoi(st.getfield(@_rxbuff, 2, ":"))
 
-PRI cmdResp(ptr_cmdstr): resp | i, chr
+PRI cmdresp(ptr_cmdstr): resp | i, chr
 ' Send command and store the response
     bytefill(@_rxbuff, 0, BUFFSZ)
     uart.flush{}
@@ -396,26 +398,25 @@ PRI cmdResp(ptr_cmdstr): resp | i, chr
     while chr
 
 ' Pull in the common terminal type methods so they can be used over the air
-#include "lib.terminal.spin"
+#include "terminal.common.spinh"
 
 DAT
 {
-    --------------------------------------------------------------------------------------------------------
-    TERMS OF USE: MIT License
+Copyright 2022 Jesse Burt
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-    associated documentation files (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
-    following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all copies or substantial
-    portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-    LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    --------------------------------------------------------------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
+

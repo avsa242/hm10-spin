@@ -17,7 +17,7 @@ This is a P8X32A/Propeller, ~~P2X8C4M64P/Propeller 2~~ driver object for HMxx Bl
 * Set module system LED mode (show connection state as flashing or steady-state)
 * Set serial/OTA data rate
 * Authentication: set PIN code, authentication mode (none, PIN every time, or pair device), remove stored pairing info
-* Integration with lib.terminal.spin, for full terminal I/O support (Char(), Bin(), Dec(), Hex(), printf(), etc)
+* Integration with terminal.common.spin, for full terminal I/O support (Char(), Bin(), Dec(), Hex(), printf(), etc)
 
 ## Requirements
 
@@ -29,11 +29,16 @@ P1/SPIN1:
 
 ## Compiler Compatibility
 
-* P1/SPIN1: OpenSpin (tested with 1.00.81)
-* ~~P2/SPIN2: FlexSpin (tested with 5.3.0-beta)~~ _(not yet implemented)_
-* ~~BST~~ (incompatible - no preprocessor)
-* ~~Propeller Tool~~ (incompatible - no preprocessor)
-* ~~PNut~~ (incompatible - no preprocessor)
+| Processor | Language | Compiler               | Backend     | Status                |
+|-----------|----------|------------------------|-------------|-----------------------|
+| P1        | SPIN1    | FlexSpin (5.9.14-beta) | Bytecode    | OK                    |
+| P1        | SPIN1    | FlexSpin (5.9.14-beta) | Native code | OK                    |
+| P1        | SPIN1    | OpenSpin (1.00.81)     | Bytecode    | Untested (deprecated) |
+| P2        | SPIN2    | FlexSpin (5.9.14-beta) | NuCode      | Not yet implemented   |
+| P2        | SPIN2    | FlexSpin (5.9.14-beta) | Native code | Not yet implemented   |
+| P1        | SPIN1    | Brad's Spin Tool (any) | Bytecode    | Unsupported           |
+| P1, P2    | SPIN1, 2 | Propeller Tool (any)   | Bytecode    | Unsupported           |
+| P1, P2    | SPIN1, 2 | PNut (any)             | Bytecode    | Unsupported           |
 
 ## Hardware Compatibility
 
@@ -42,12 +47,5 @@ P1/SPIN1:
 ## Limitations
 
 * Very early in development - may malfunction, or outright fail to build
-* Supports slave role only
 * No validation performed on responses to commands sent (i.e., was the command "OK")
 
-## TODO
-
-- [ ] Port to P2/SPIN2
-- [x] Add support for other bitrates
-- [ ] Add support for master role
-- [ ] TBD
