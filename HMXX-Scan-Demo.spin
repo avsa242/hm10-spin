@@ -7,7 +7,7 @@
         * scan/display all peripheral nodes found
     Copyright (c) 2022
     Started Apr 9, 2022
-    Updated Aug 16, 2022
+    Updated Nov 19, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -21,8 +21,8 @@ CON
     SER_BAUD    = 115_200
     LED         = cfg#LED1
 
-    BLE_RX      = 8
-    BLE_TX      = 9
+    BLE_RX      = 0
+    BLE_TX      = 1
 
     ' 4800, 9600, 19200, 38400, 57600, 115200, 230400
     ' See DataRate() in driver for instructions on changing this
@@ -33,10 +33,10 @@ CON
 
 OBJ
 
-    cfg     : "core.con.boardcfg.flip"
+    cfg     : "boardcfg.flip"
     ser     : "com.serial.terminal.ansi"
     time    : "time"
-    ble     : "wireless.bluetooth-le.hmxx.uart"
+    ble     : "wireless.bluetooth-le.hmxx"
     str     : "string"
 
 VAR
@@ -48,18 +48,18 @@ PUB main{} | role, entry, i, ch
 
     setup{}
 
-    ble.role(ble#CENTRAL)
-    ble.workmode(1)
-    ble.scantime(3)
-    ble.resolvenames(TRUE)
-    role := ble.role(-2)
-    ser.printf1(@"Device name: %s\n\r", ble.nodename(-2))
+    ble.set_role(ble#CENTRAL)
+    ble.set_work_mode(1)
+    ble.set_scan_time(3)
+    ble.resolve_names(TRUE)
+    role := ble.role{}
+    ser.printf1(@"Device name: %s\n\r", ble.node_name{})
     ser.printf1(@"Version: %d\n\r", ble.version{})
-    ser.printf1(@"Scan time: %dsecs\n\r", ble.scantime(-2))
-    ser.printf1(@"Workmode: %d\n\r", ble.workmode(-2))
+    ser.printf1(@"Scan time: %dsecs\n\r", ble.scan_time{})
+    ser.printf1(@"Workmode: %d\n\r", ble.work_mode{})
     ser.str(@"Role: ")
 
-    if (role == ble#PERIPH)
+    if (role == ble#PERIPHERAL)
         ser.strln(@"Peripheral")
     elseif (role == ble#CENTRAL)
         ser.strln(@"Central")
@@ -71,20 +71,20 @@ PUB main{} | role, entry, i, ch
 
     entry := 0
     repeat
-        ble.rdstr_max(@_tmp, 8)
+        ble.gets_max(@_tmp, 8)
         if (str.match(@_tmp, string("OK+DISCS")))
             ser.strln(@"SCAN START")
         elseif (str.match(@_tmp, string("OK+DIS0:")))
-            ble.rdstr_max(@_tmp, 12)
+            ble.gets_max(@_tmp, 12)
             ser.printf1(@"Entry %d: ", entry)
             repeat i from 0 to 11
-                ser.char(_tmp[i])
-            ser.char(" ")
+                ser.putchar(_tmp[i])
+            ser.putchar(" ")
             entry++
         elseif (str.match(@_tmp, string("OK+NAME:")))
             i := 0
             repeat
-                ch := ble.charin{}
+                ch := ble.getchar{}
                 _tmp[i++] := ch
             until (ch == 10)
             _tmp[--i] := 0                      ' erase the LF/CR
@@ -92,7 +92,6 @@ PUB main{} | role, entry, i, ch
             ser.strln(@_tmp)
         elseif (str.match(@_tmp, string("OK+DISCE")))
             quit
-
     ser.strln(@"SCAN END")
 
     repeat

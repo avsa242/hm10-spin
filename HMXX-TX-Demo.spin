@@ -2,10 +2,10 @@
     --------------------------------------------
     Filename: HMXX-TX-Demo.spin
     Author: Jesse Burt
-    Description: Simple transmit demo for HMXX BLE modules
+    Description: Simple transmit demo for HM-xx BLE modules
     Copyright (c) 2022
-    Started Mar 28, 2021
-    Updated Sep 17, 2022
+    Started Nov 19, 2022
+    Updated Nov 19, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,39 +19,28 @@ CON
     SER_BAUD    = 115_200
     LED         = cfg#LED1
 
-    BLE_RX      = 8
-    BLE_TX      = 9
-
-    ' 4800, 9600, 19200, 38400, 57600, 115200, 230400
-    ' See DataRate() in driver for instructions on changing this
+    BLE_RX      = 0
+    BLE_TX      = 1
     BLE_BAUD    = 9600
 ' --
 
 OBJ
 
-    cfg     : "core.con.boardcfg.flip"
+    cfg     : "boardcfg.flip"
     ser     : "com.serial.terminal.ansi"
     time    : "time"
-    ble     : "wireless.bluetooth-le.hmxx.uart"
+    ble     : "wireless.bluetooth-le.hmxx"
 
-PUB main{} | i, text_len
+PUB main{}
 
     setup{}
-    text_len := strsize(@text)-1                ' get length/last char of text
-    i := 0
-    repeat                                      ' continuously send text
-        ble.char(byte[@text][i++])              '   char by char
-        if i > text_len                         ' send notification if the
-            i := 0                              '   end of the text is reached
-            repeat 3
-                ble.newline
-            ble.strln(string("*** DONE ***"))
-            repeat 3
-                ble.newline
-            time.sleep(2)
-'        time.msleep(10)                         ' optional inter-char delay
+    ser.newline{}
+    ser.strln(string("Text typed into this terminal will be transmitted to the remote device"))
 
-PUB setup{}
+    repeat                                      ' send data typed into the terminal to the
+        ble.putchar(ser.getchar{})              '   remote device
+
+PUB setup
 
     ser.start(SER_BAUD)
     time.msleep(30)
@@ -64,14 +53,7 @@ PUB setup{}
         ser.strln(string("HMxx BLE driver failed to start - halting"))
         repeat
 
-    ble.workmode(ble#IMMED)
-    ble.role(ble#PERIPH)
-
 DAT
-
-    text        file "lincoln.txt"
-    EOT         byte 0                          ' terminate string
-
 {
 Copyright 2022 Jesse Burt
 

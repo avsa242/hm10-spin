@@ -1,8 +1,8 @@
 {
     --------------------------------------------
-    Filename: HMXX-RX-Demo.spin
+    Filename: HMXX-TX-Demo.spin
     Author: Jesse Burt
-    Description: Simple receive demo for HM-xx BLE modules
+    Description: Simple transmit demo for HMXX BLE modules
     Copyright (c) 2022
     Started Mar 28, 2021
     Updated Nov 19, 2022
@@ -21,6 +21,9 @@ CON
 
     BLE_RX      = 0
     BLE_TX      = 1
+
+    ' 4800, 9600, 19200, 38400, 57600, 115200, 230400
+    ' See set_data_rate() in driver for instructions on changing this
     BLE_BAUD    = 9600
 ' --
 
@@ -31,13 +34,24 @@ OBJ
     time    : "time"
     ble     : "wireless.bluetooth-le.hmxx"
 
-PUB main{}
+PUB main{} | i, text_len
 
     setup{}
-    repeat                                      ' print data received from BLE
-        ser.putchar(ble.getchar{})              ' to the terminal
+    text_len := strsize(@text)-1                ' get length/last char of text
+    i := 0
+    repeat                                      ' continuously send text char by char
+        ble.putchar(byte[@text][i++])
+        if (i > text_len)                       ' send notification if the end of the text
+            i := 0                              '   is reached
+            repeat 3
+                ble.newline{}
+            ble.strln(string("*** DONE ***"))
+            repeat 3
+                ble.newline{}
+            time.sleep(2)
+'        time.msleep(10)                         ' optional inter-char delay
 
-PUB setup
+PUB setup{}
 
     ser.start(SER_BAUD)
     time.msleep(30)
@@ -50,7 +64,15 @@ PUB setup
         ser.strln(string("HMxx BLE driver failed to start - halting"))
         repeat
 
+    ble.set_work_mode(ble#IMMEDIATE)
+    ble.set_role(ble#PERIPHERAL)
+
 DAT
+
+    { text file to transmit }
+    text        file "lincoln.txt"
+    EOT         byte 0                          ' terminate string
+
 {
 Copyright 2022 Jesse Burt
 
