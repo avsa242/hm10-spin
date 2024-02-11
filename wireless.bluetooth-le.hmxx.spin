@@ -11,6 +11,12 @@
 
 CON
 
+    { default I/O configuration - these can be overridden by the parent object }
+    RXPIN               = 0
+    TXPIN               = 1
+    BLE_BAUD            = 9600
+
+
     { Advertising types }
     ADV_SCANRESP_CONN   = 0
     LASTDEV_ONLY        = 1
@@ -60,16 +66,20 @@ VAR
 PUB null{}
 ' This is not a top-level object
 
-PUB init(BLE_RX, BLE_TX, BLE_BAUD): status
+PUB start(): s
+' Start the driver using default I/O settings
+    return startx(RXPIN, TXPIN, BLE_BAUD)
+
+PUB startx(BLE_RX, BLE_TX, BPS): status
 ' Start driver using custom I/O settings and bitrate
 '   BLE_RX: pin connected to BLE module's TX pin
 '   BLE_TX: pin connected to BLE module's RX pin
 '   BLE_BAUD: 4800..230_400 (default: 9600)
-    if lookdown(BLE_RX: 0..31) and lookdown(BLE_TX: 0..31) and {
-}   lookdown(BLE_BAUD: 4800, 9600, 19200, 38400, 57600, 115200, 230400)
-        if (status := uart.startrxtx(BLE_RX, BLE_TX, 0, BLE_BAUD))
+    if ( lookdown(BLE_RX: 0..31) and lookdown(BLE_TX: 0..31) and ...
+        lookdown(BLE_BAUD: 4800, 9600, 19200, 38400, 57600, 115200, 230400) )
+        if ( status := uart.startrxtx(BLE_RX, BLE_TX, 0, BPS) )
             time.msleep(30)
-            if (dev_id{} == OK)                 ' validate device
+            if ( dev_id{} == OK )               ' validate device
                 return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
@@ -80,7 +90,7 @@ PUB init(BLE_RX, BLE_TX, BLE_BAUD): status
     '   the 'OK' response.
     return FALSE
 
-PUB deinit{}
+PUB stop{}
 ' Stop the driver
     uart.stop{}
 
@@ -214,18 +224,18 @@ PUB data_rate{}: curr_rate
     curr_rate := st.atoi(st.getfield(@_rxbuff, 2, ":"))
     return lookupz(curr_rate: 9600, 19200, 38400, 57600, 115200, 4800, 2400, 1200, 230400)
 
-PUB set_data_rate(rate)| cmd, tmp
+PUB set_data_rate(rate) | cmd, tmp
 ' Set data rate, in bps
 '   Valid values: 4800, 9600, 19200, 38400, 57600, 115200, 230400
 '   NOTE: This affects both on-air and serial interface data rates. When
 '       updating data rates, the driver must first be started with the existing
-'       rate. The updated rate takes effect when reset or power cycled.
+'       rate. The updated rate takes effect when the module is reset or power cycled.
 '   Example: Current data rate 9600, new rate desired: 19200
-'   ble.init(RX, TX, 9600)                      ' start the driver with the current data rate
+'   ble.startx(RX, TX, 9600)                    ' start the driver with the current data rate
 '   ble.set_data_rate(19200)                    ' set the new one
-'   ble.reset                                   ' reset the chip (the change takes effect here)
-'   ble.deinit                                  ' stop the ble driver
-'   ble.init(RX, TX, 19200)                     ' restart it at the new rate
+'   ble.reset()                                 ' reset the chip (the change takes effect here)
+'   ble.stop()                                  ' stop the ble driver
+'   ble.startx(RX, TX, 19200)                   ' restart it at the new rate
     case rate
         4800, 9600, 19200, 38400, 57600, 115200, 230400:
             rate := lookdownz(rate: 9600, 19200, 38400, 57600, 115200, 4800, 2400, 1200, 230400)

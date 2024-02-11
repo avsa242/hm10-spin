@@ -1,71 +1,65 @@
 {
-    --------------------------------------------
-    Filename: HMXX-TX-Demo.spin
-    Author: Jesse Burt
-    Description: Simple transmit demo for HMXX BLE modules
-    Copyright (c) 2022
-    Started Mar 28, 2021
-    Updated Nov 19, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       HMXX-TX-Textfile-demo.spin
+    Description:    HMxx BLE: Demo transmitting a text file to a remote node
+    Author:         Jesse Burt
+    Started:        Mar 28, 2021
+    Updated:        Feb 11, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 CON
 
-    _clkmode    = cfg#_clkmode
-    _xinfreq    = cfg#_xinfreq
+    _clkmode    = cfg._clkmode
+    _xinfreq    = cfg._xinfreq
 
-' -- User-modifiable constants
-    SER_BAUD    = 115_200
-    LED         = cfg#LED1
-
-    BLE_RX      = 0
-    BLE_TX      = 1
-
-    ' 4800, 9600, 19200, 38400, 57600, 115200, 230400
-    ' See set_data_rate() in driver for instructions on changing this
-    BLE_BAUD    = 9600
-' --
 
 OBJ
 
-    cfg     : "boardcfg.flip"
-    ser     : "com.serial.terminal.ansi"
-    time    : "time"
-    ble     : "wireless.bluetooth-le.hmxx"
+    cfg:    "boardcfg.flip"
+    time:   "time"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=115_200
+    ble:    "wireless.bluetooth-le.hmxx" | RXPIN=8, TXPIN=9, BLE_BAUD=9600
+    ' BLE_BAUD: 4800, 9600, 19200, 38400, 57600, 115200, 230400
+    ' IMPORTANT: See data_rate() in the driver for instructions on changing this
 
-PUB main{} | i, text_len
 
-    setup{}
+PUB main() | i, text_len
+
+    setup()
     text_len := strsize(@text)-1                ' get length/last char of text
     i := 0
     repeat                                      ' continuously send text char by char
         ble.putchar(byte[@text][i++])
-        if (i > text_len)                       ' send notification if the end of the text
+        if ( i > text_len )                     ' send notification if the end of the text
             i := 0                              '   is reached
             repeat 3
-                ble.newline{}
-            ble.strln(string("*** DONE ***"))
+                ble.newline()
+            ble.strln(@"*** DONE ***")
             repeat 3
-                ble.newline{}
+                ble.newline()
             time.sleep(2)
 '        time.msleep(10)                         ' optional inter-char delay
 
-PUB setup{}
 
-    ser.start(SER_BAUD)
+PUB setup()
+
+    ser.start()
     time.msleep(30)
-    ser.clear{}
-    ser.strln(string("Serial terminal started"))
+    ser.clear()
+    ser.strln(@"Serial terminal started")
 
-    if ble.init(BLE_RX, BLE_TX, BLE_BAUD)
-        ser.strln(string("HMxx BLE driver started"))
+    if ( ble.start() )
+        ser.strln(@"HMxx BLE driver started")
     else
-        ser.strln(string("HMxx BLE driver failed to start - halting"))
+        ser.strln(@"HMxx BLE driver failed to start - halting")
         repeat
 
-    ble.set_work_mode(ble#IMMEDIATE)
-    ble.set_role(ble#PERIPHERAL)
+    { make sure the device is setup to be a peripheral and goes immediately to online/data mode }
+    ble.set_role(ble.PERIPHERAL)
+    ble.set_work_mode(ble.IMMEDIATE)
+
 
 DAT
 
@@ -73,8 +67,10 @@ DAT
     text        file "lincoln.txt"
     EOT         byte 0                          ' terminate string
 
+
+DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

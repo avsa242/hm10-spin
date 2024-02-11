@@ -14,16 +14,7 @@ CON
     _clkmode        = cfg._clkmode
     _xinfreq        = cfg._xinfreq
 
-' -- User-modifiable constants
-    BLE_RX          = 8
-    BLE_TX          = 9
-
-    ' 4800, 9600, 19200, 38400, 57600, 115200, 230400
-    ' See data_rate() in the driver for instructions on changing this
-    BLE_BAUD        = 9600
-' --
-
-    MAX_ENTRIES     = 16
+    MAX_ENTRIES     = 16                        ' max number of remote nodes to store
     MAX_NAME_LEN    = 32+1                      ' 32 chars+NUL terminator
     MAC_ADDR_LEN    = 6
 
@@ -31,10 +22,13 @@ CON
 OBJ
 
     cfg:    "boardcfg.flip"
-    ser:    "com.serial.terminal.ansi" | SER_BAUD=115_200
-    time:   "time"
-    ble:    "wireless.bluetooth-le.hmxx"
     str:    "string"
+    time:   "time"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=115_200
+    ble:    "wireless.bluetooth-le.hmxx" | RXPIN=8, TXPIN=9, BLE_BAUD=9600
+    ' BLE_BAUD: 4800, 9600, 19200, 38400, 57600, 115200, 230400
+    ' IMPORTANT: See data_rate() in the driver for instructions on changing this
+
 
 VAR
 
@@ -105,7 +99,7 @@ PUB setup()
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    if ( ble.init(BLE_RX, BLE_TX, BLE_BAUD) )
+    if ( ble.start() )
         ser.strln(@"HMxx BLE driver started")
     else
         ser.strln(@"HMxx BLE driver failed to start - halting")
