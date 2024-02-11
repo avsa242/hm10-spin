@@ -1,117 +1,124 @@
 {
-    --------------------------------------------
-    Filename: HMXX-Scan-Demo.spin
-    Author: Jesse Burt
-    Description: Scan demo for HMXX BLE modules
-        * set module to central role
-        * scan/display all peripheral nodes found
-    Copyright (c) 2022
-    Started Apr 9, 2022
-    Updated Nov 19, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       HMXX-Scan-Demo.spin
+    Description:    Remote node scan demo for HMXX BLE modules
+    Author:         Jesse Burt
+    Started:        Apr 9, 2022
+    Updated:        Feb 11, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 CON
 
-    _clkmode    = cfg#_clkmode
-    _xinfreq    = cfg#_xinfreq
+    _clkmode        = cfg._clkmode
+    _xinfreq        = cfg._xinfreq
 
 ' -- User-modifiable constants
-    SER_BAUD    = 115_200
-    LED         = cfg#LED1
-
-    BLE_RX      = 0
-    BLE_TX      = 1
+    BLE_RX          = 8
+    BLE_TX          = 9
 
     ' 4800, 9600, 19200, 38400, 57600, 115200, 230400
-    ' See DataRate() in driver for instructions on changing this
-    BLE_BAUD    = 9600
+    ' See data_rate() in the driver for instructions on changing this
+    BLE_BAUD        = 9600
 ' --
 
-    MAX_ENTRIES = 16
+    MAX_ENTRIES     = 16
+    MAX_NAME_LEN    = 32+1                      ' 32 chars+NUL terminator
+    MAC_ADDR_LEN    = 6
+
 
 OBJ
 
-    cfg     : "boardcfg.flip"
-    ser     : "com.serial.terminal.ansi"
-    time    : "time"
-    ble     : "wireless.bluetooth-le.hmxx"
-    str     : "string"
+    cfg:    "boardcfg.flip"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=115_200
+    time:   "time"
+    ble:    "wireless.bluetooth-le.hmxx"
+    str:    "string"
 
 VAR
 
-    byte _rxbuff[256]
-    byte _tmp[32+1]
+    byte _tmp[MAX_NAME_LEN]                     ' scratch buffer
+    byte _mac[MAC_ADDR_LEN*MAX_ENTRIES]         ' MAC address of remote nodes
+    byte _name[MAX_NAME_LEN*MAX_ENTRIES]        ' name of remote nodes
 
-PUB main{} | role, entry, i, ch
 
-    setup{}
+PUB main() | entry, i
 
-    ble.set_role(ble#CENTRAL)
-    ble.set_work_mode(1)
-    ble.set_scan_time(3)
-    ble.resolve_names(TRUE)
-    role := ble.role{}
-    ser.printf1(@"Device name: %s\n\r", ble.node_name{})
-    ser.printf1(@"Version: %d\n\r", ble.version{})
-    ser.printf1(@"Scan time: %dsecs\n\r", ble.scan_time{})
-    ser.printf1(@"Workmode: %d\n\r", ble.work_mode{})
-    ser.str(@"Role: ")
+    setup()
 
-    if (role == ble#PERIPHERAL)
-        ser.strln(@"Peripheral")
-    elseif (role == ble#CENTRAL)
-        ser.strln(@"Central")
+    ble.set_scan_time(3)                        ' seconds (HM10: 1..9, HM19: 1..5)
+    ser.printf1(@"Device name: %s\n\r", ble.node_name())
+    ser.printf1(@"Version: %d\n\r", ble.version())
+    ser.printf1(@"Scan time: %dsecs\n\r", ble.scan_time())
 
-    ser.strln(@"Scanning...")
+    time.msleep(500)                            ' give BLE module time to settle
+    ble.flush_rx()
+
+    ser.str(@"Scanning...")
     ble.str(@"AT+DISC?")
-    time.sleep(1)
-    ble.str(@"AT+DISC?")    'XXX get this to work without sending twice?
+
+
+    repeat                                      ' wait for response from module
+        ble.gets_max(@_tmp, 8)                  '   indicating the scan has started
+    until (strcomp(@_tmp, @"OK+DISCS"))
+
 
     entry := 0
     repeat
-        ble.gets_max(@_tmp, 8)
-        if (str.match(@_tmp, string("OK+DISCS")))
-            ser.strln(@"SCAN START")
-        elseif (str.match(@_tmp, string("OK+DIS0:")))
-            ble.gets_max(@_tmp, 12)
-            ser.printf1(@"Entry %d: ", entry)
-            repeat i from 0 to 11
-                ser.putchar(_tmp[i])
-            ser.putchar(" ")
+        bytefill(@_tmp, 0, MAX_NAME_LEN)
+        ble.gets_max(@_tmp, 8)                  ' look for response with remote MAC address
+        if (    strcomp(@_tmp, @"OK+DIS0:") or ...
+                strcomp(@_tmp, @"OK+DIS1:") or ...
+                strcomp(@_tmp, @"OK+DIS2:") )
+            repeat i from 0 to MAC_ADDR_LEN-1   ' store the MAC address
+                _mac[(entry*MAC_ADDR_LEN)+i] := ble.gethex(2)
+
+            bytefill(@_tmp, 0, MAX_NAME_LEN)
+            ble.gets_max(@_tmp, 8)              ' look for response with remote node name
+            if ( strcomp(@_tmp, @"OK+NAME:") )  ' response with remote node name (CRLF-terminated)
+                bytefill(@_name+(entry*MAX_NAME_LEN), 0, MAX_NAME_LEN)
+                ble.gets_max(@_name+(entry*MAX_NAME_LEN), MAX_NAME_LEN)
+
             entry++
-        elseif (str.match(@_tmp, string("OK+NAME:")))
-            i := 0
-            repeat
-                ch := ble.getchar{}
-                _tmp[i++] := ch
-            until (ch == 10)
-            _tmp[--i] := 0                      ' erase the LF/CR
-            _tmp[--i] := 0
-            ser.strln(@_tmp)
-        elseif (str.match(@_tmp, string("OK+DISCE")))
+            if ( entry => MAX_ENTRIES )
+                quit
+        elseif ( strcomp(@_tmp, @"OK+DISCE") )  ' module reports scan is finished
             quit
-    ser.strln(@"SCAN END")
+        else
+            next                                ' unexpected response
+
+    ser.strln(@"finished")
+
+    { show the list of remote nodes found }
+    repeat i from 0 to entry-1
+        ser.printf3(@"Entry %d: %s (%s)\n\r", i, str.mactostr(@_mac+(i*6)), @_name+(i*33) )
+
 
     repeat
 
-PUB setup{}
 
-    ser.start(SER_BAUD)
+PUB setup()
+
+    ser.start()
     time.msleep(30)
-    ser.clear{}
-    ser.strln(string("Serial terminal started"))
+    ser.clear()
+    ser.strln(@"Serial terminal started")
 
-    if ble.init(BLE_RX, BLE_TX, BLE_BAUD)
-        ser.strln(string("HMxx BLE driver started"))
+    if ( ble.init(BLE_RX, BLE_TX, BLE_BAUD) )
+        ser.strln(@"HMxx BLE driver started")
     else
-        ser.strln(string("HMxx BLE driver failed to start - halting"))
+        ser.strln(@"HMxx BLE driver failed to start - halting")
         repeat
+
+    ble.set_role(ble.CENTRAL)                   ' must be in central role to scan
+    ble.set_work_mode(ble.IDLE)                 ' start in command mode
+    ble.resolve_names(TRUE)                     ' we want the names of remote nodes, too
+
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

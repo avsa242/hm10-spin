@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: wireless.bluetooth-le.hmxx.spin
-    Author: Jesse Burt
-    Description: Driver for UART-connected HM-XX BLE modules
-    Copyright (c) 2022
-    Started Mar 28, 2021
-    Updated Nov 19, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       wireless.bluetooth-le.hmxx.spin
+    Description:    Driver for UART-connected HM-XX BLE modules
+    Author:         Jesse Burt
+    Started:        Mar 28, 2021
+    Updated:        Feb 11, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 CON
@@ -50,9 +49,9 @@ CON
 
 OBJ
 
-    time    : "time"
-    uart    : "com.serial.terminal"
-    st      : "string"
+    time:   "time"
+    uart:   "com.serial.terminal.ansi"
+    st:     "string"
 
 VAR
 
@@ -164,11 +163,23 @@ PUB putchar(c)
 ' Send character
     uart.putchar(c)
 
+pub flush_rx(): s
+' Flush the serial receive buffer
+    return uart.flush_rx()
+
+
 PUB charin = getchar
 PUB getchar{}: c
 ' Receive character from module (blocking)
 '   Returns: ASCII code of character received
     return uart.getchar{}
+
+pub gethex(d=0): v
+' Get a hexadecimal number string from the module
+'   d (optional): number of digits to read, 1..8 (default: read until 8 digits or newline received)
+'   Returns: integer
+    return uart.gethex(d)
+
 
 PUB is_conn_notify_ena{}: curr_state
 ' Get current state of (dis)connection notifications
@@ -300,15 +311,15 @@ PUB role{}: curr_role | cmd
     cmdresp(cmd)
     return st.atoi(st.getfield(@_rxbuff, 2, ":"))
 
-PUB set_role(role) | cmd
+PUB set_role(r) | cmd
 ' Set device role
 '   Valid values:
 '      *PERIPHERAL (0): Peripheral
 '       CENTRAL (1): Central
-    case role
+    case r
         PERIPHERAL, CENTRAL:
             cmd := string("AT+ROLE#")
-            st.replacechar(cmd, "#", role + "0")
+            st.replacechar(cmd, "#", r + "0")
             cmdresp(cmd)
 
 PUB rx_check{}: r
