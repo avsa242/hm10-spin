@@ -1,42 +1,51 @@
 {
 ---------------------------------------------------------------------------------------------------
-    Filename:       HMXX-RX-Demo.spin
-    Description:    Simple receive demo for HM-xx BLE modules
+    Filename:       HMXX-TX-Textfile-demo.spin2
+    Description:    HMxx BLE: Demo transmitting a text file to a remote node
     Author:         Jesse Burt
-    Started:        Mar 28, 2021
-    Updated:        Feb 11, 2024
+    Started:        Feb 19, 2024
+    Updated:        Feb 19, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 }
 
 CON
 
-    _clkmode    = cfg._clkmode
-    _xinfreq    = cfg._xinfreq
+    _clkfreq    = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
 
 
 OBJ
 
-    cfg:    "boardcfg.flip"
+    cfg:    "boardcfg.p2eval"
     time:   "time"
-    ser:    "com.serial.terminal.ansi" | SER_BAUD=115_200
-    ble:    "wireless.bluetooth-le.hmxx" | RXPIN=0, TXPIN=1, BLE_BAUD=9600
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    ble:    "wireless.bluetooth-le.hmxx" | RXPIN=9, TXPIN=10, BLE_BAUD=9600
     ' BLE_BAUD: 4800, 9600, 19200, 38400, 57600, 115200, 230400
     ' IMPORTANT: See data_rate() in the driver for instructions on changing this
 
 
-PUB main()
+PUB main() | i, text_len
 
     setup()
-
-    repeat                                      ' print data received from BLE
-        ser.putchar(ble.getchar())              ' to the terminal
+    text_len := strsize(@text)-1                ' get length/last char of text
+    i := 0
+    repeat                                      ' continuously send text char by char
+        ble.putchar(byte[@text][i++])
+        if ( i > text_len )                     ' send notification if the end of the text
+            i := 0                              '   is reached
+            repeat 3
+                ble.newline()
+            ble.strln(@"*** DONE ***")
+            repeat 3
+                ble.newline()
+            time.sleep(2)
+'        waitms(10)                         ' optional inter-char delay
 
 
 PUB setup()
 
     ser.start()
-    time.msleep(30)
     ser.clear()
     ser.strln(@"Serial terminal started")
 
@@ -49,6 +58,13 @@ PUB setup()
     { make sure the device is setup to be a peripheral and goes immediately to online/data mode }
     ble.set_role(ble.PERIPHERAL)
     ble.set_work_mode(ble.IMMEDIATE)
+
+
+DAT
+
+    { text file to transmit }
+    text        file "lincoln.txt"
+    EOT         byte 0                          ' terminate string
 
 
 DAT

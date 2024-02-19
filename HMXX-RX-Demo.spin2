@@ -1,29 +1,28 @@
 {
 ---------------------------------------------------------------------------------------------------
-    Filename:       HMXX-RX-Demo.spin
+    Filename:       HMXX-RX-Demo.spin2
     Description:    Simple receive demo for HM-xx BLE modules
     Author:         Jesse Burt
-    Started:        Mar 28, 2021
-    Updated:        Feb 11, 2024
+    Started:        Feb 19, 2024
+    Updated:        Feb 19, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 }
 
 CON
 
-    _clkmode    = cfg._clkmode
-    _xinfreq    = cfg._xinfreq
+    _clkfreq    = cfg._clkfreq_def
+    _xtlfreq    = cfg._xtlfreq
 
 
 OBJ
 
-    cfg:    "boardcfg.flip"
+    cfg:    "boardcfg.p2eval"
     time:   "time"
-    ser:    "com.serial.terminal.ansi" | SER_BAUD=115_200
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
     ble:    "wireless.bluetooth-le.hmxx" | RXPIN=0, TXPIN=1, BLE_BAUD=9600
     ' BLE_BAUD: 4800, 9600, 19200, 38400, 57600, 115200, 230400
     ' IMPORTANT: See data_rate() in the driver for instructions on changing this
-
 
 PUB main()
 
@@ -36,7 +35,6 @@ PUB main()
 PUB setup()
 
     ser.start()
-    time.msleep(30)
     ser.clear()
     ser.strln(@"Serial terminal started")
 
