@@ -1,12 +1,12 @@
 {
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
     Filename:       wireless.bluetooth-le.hmxx.spin
     Description:    Driver for UART-connected HM-XX BLE modules
     Author:         Jesse Burt
     Started:        Mar 28, 2021
-    Updated:        Feb 11, 2024
+    Updated:        Aug 23, 2024
     Copyright (c) 2024 - See end of file for terms of use.
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 }
 
 CON
@@ -53,22 +53,27 @@ CON
 
     BUFFSZ              = 32
 
+
 OBJ
 
-    time:   "time"
-    uart:   "com.serial.terminal.ansi"
-    st:     "string"
+    time:   "time"                              ' timekeeping methods
+    uart:   "com.serial.terminal.ansi"          ' async serial engine w/terminal I/O
+    st:     "string"                            ' string manipulation
+
 
 VAR
 
     byte _rxbuff[BUFFSZ], _tries
 
-PUB null{}
+
+PUB null()
 ' This is not a top-level object
+
 
 PUB start(): s
 ' Start the driver using default I/O settings
     return startx(RXPIN, TXPIN, BLE_BAUD)
+
 
 PUB startx(BLE_RX, BLE_TX, BPS): status
 ' Start driver using custom I/O settings and bitrate
@@ -79,7 +84,7 @@ PUB startx(BLE_RX, BLE_TX, BPS): status
         lookdown(BLE_BAUD: 4800, 9600, 19200, 38400, 57600, 115200, 230400) )
         if ( status := uart.startrxtx(BLE_RX, BLE_TX, 0, BPS) )
             time.msleep(30)
-            if ( dev_id{} == OK )               ' validate device
+            if ( dev_id() == OK )               ' validate device
                 return
     ' if this point is reached, something above failed
     ' Double check I/O pin assignments, connections, power
@@ -90,28 +95,32 @@ PUB startx(BLE_RX, BLE_TX, BPS): status
     '   the 'OK' response.
     return FALSE
 
-PUB stop{}
-' Stop the driver
-    uart.stop{}
 
-PUB defaults{}
+PUB stop()
+' Stop the driver
+    uart.stop()
+
+
+PUB defaults()
 ' Factory default settings
 '   NOTE: This resets ALL settings to factory default, including user-data
 '   such as module name, PIN code, etc
-    cmdresp(string("AT+RENEW"))
+    cmdresp(@"AT+RENEW")
 
-PUB advert_interval{}: curr_intv | cmd
+
+PUB advert_interval(): curr_intv | cmd
 ' Get advertising interval
 '   Returns: milliseconds
-    cmd := string("AT+ADVI?")
+    cmd := @"AT+ADVI?"
     cmdresp(cmd)
     ' settings data is on the right side of the ':' in the response
     '   from the module (e.g., '9' if the module responds "AT+Get:9")
     ' Grab it, convert it to binary form, and look up the corresponding
     '   time interval in the table
     curr_intv := st.atoib(st.getfield(@_rxbuff, 2, ":"), NHEX)
-    return lookupz(curr_intv: 100, 152, 211, 318, 417, 546, 760, 852, 1022, 1285, 2000, 3000, {
-}                             4000, 5000, 6000, 7000)
+    return lookupz(curr_intv:   100, 152, 211, 318, 417, 546, 760, 852, 1022, 1285, 2000, 3000, ...
+                                4000, 5000, 6000, 7000)
+
 
 PUB set_advert_interval(intv) | cmd
 ' Set advertising interval, in milliseconds
@@ -120,18 +129,20 @@ PUB set_advert_interval(intv) | cmd
 '       5000, 6000, 7000
     case intv
         100, 152, 211, 318, 417, 546, 760, 852, 1022, 1285, 2000, 3000, 4000, 5000, 6000, 7000:
-            intv := lookdownz(intv: 100, 152, 211, 318, 417, 546, 760, 852, 1022, 1285, 2000, {
-}                                   3000, 4000, 5000, 6000, 7000)
-            cmd := string("AT+ADVI#")
+            intv := lookdownz(intv: 100, 152, 211, 318, 417, 546, 760, 852, 1022, 1285, 2000, ...
+                                    3000, 4000, 5000, 6000, 7000)
+            cmd := @"AT+ADVI#"
             st.replacechar(cmd, "#", lookupz(intv & $f: "0".."9", "A".."F"))
             cmdresp(cmd)
 
-PUB advert_type{}: curr_type | cmd
+
+PUB advert_type(): curr_type | cmd
 ' Get advertising type
 '   Returns: integer
-    cmd := string("AT+ADTY?")
+    cmd := @"AT+ADTY?"
     cmdresp(cmd)
     return st.atoi(st.getfield(@_rxbuff, 2, ":"))
+
 
 PUB set_advert_type(type): curr_type | cmd
 ' Set advertising type
@@ -142,16 +153,18 @@ PUB set_advert_type(type): curr_type | cmd
 '       ADV_ONLY (3): Only allow advertising
     case type
         ADV_SCANRESP_CONN, LASTDEV_ONLY, ADV_SCANRESP, ADV_ONLY:
-            cmd := string("AT+ADTY#")
+            cmd := @"AT+ADTY#"
             st.replacechar(cmd, "#", lookupz(type & $f: "0".."9", "A".."F"))
             cmdresp(cmd)
 
-PUB auth_mode{}: curr_mode | cmd
+
+PUB auth_mode(): curr_mode | cmd
 ' Get authentication mode
 '   Returns: integer
-    cmd := string("AT+TYPE?")
+    cmd := @"AT+TYPE?"
     cmdresp(cmd)
     return st.atoi(st.getfield(@_rxbuff, 2, ":"))
+
 
 PUB set_auth_mode(mode): curr_mode | cmd
 ' Set authentication mode
@@ -160,18 +173,20 @@ PUB set_auth_mode(mode): curr_mode | cmd
 '       AUTH_NOPIN (1): authenticate, but no PIN required
 '       AUTO_PIN (2): authenticate, PIN required (every connection)
 '       AUTH_PAIR (3): authenticate, PIN required (only once per pairing)
-    if (version{} < 515)                        ' per the datasheet, don't use
+    if (version() < 515)                        ' per the datasheet, don't use
         return                                  ' if firmware is older than 515
     case mode
         NOPIN, AUTH_NOPIN, AUTH_PIN, AUTH_PAIR:
-            cmd := string("AT+TYPE#")
+            cmd := @"AT+TYPE#"
             st.replacechar(cmd, "#", lookupz(mode & 3: "0".."3"))
             cmdresp(cmd)
+
 
 PUB char = putchar
 PUB putchar(c)
 ' Send character
     uart.putchar(c)
+
 
 pub flush_rx(): s
 ' Flush the serial receive buffer
@@ -179,10 +194,11 @@ pub flush_rx(): s
 
 
 PUB charin = getchar
-PUB getchar{}: c
+PUB getchar(): c
 ' Receive character from module (blocking)
 '   Returns: ASCII code of character received
-    return uart.getchar{}
+    return uart.getchar()
+
 
 pub gethex(d=0): v
 ' Get a hexadecimal number string from the module
@@ -191,12 +207,13 @@ pub gethex(d=0): v
     return uart.gethex(d)
 
 
-PUB is_conn_notify_ena{}: curr_state
+PUB is_conn_notify_ena(): curr_state
 ' Get current state of (dis)connection notifications
 '   Returns: TRUE (-1) or FALSE (0)
-    cmd := string("AT+NOTI?")
+    cmd := @"AT+NOTI?"
     cmdresp(cmd)
     return (st.atoi(st.getfield(@_rxbuff, 2, ":")) == 1)
+
 
 PUB conn_notify_ena(state) | cmd
 ' Enable (dis)connection notifications
@@ -206,23 +223,26 @@ PUB conn_notify_ena(state) | cmd
 '       When module disconnects, the notification 'OK+LOST' will be sent
     case ||(state)
         0, 1:
-            cmd := string("AT+NOTI#")
+            cmd := @"AT+NOTI#"
             st.replacechar(cmd, "#", lookupz(||(state): "0", "1"))
             cmdresp(cmd)
 
+
 PUB count = fifo_rx_bytes
-PUB fifo_rx_bytes{}: c
+PUB fifo_rx_bytes(): c
 ' Get number of characters in receive buffer
 '   Returns: integer
-    return uart.fifo_rx_bytes{}
+    return uart.fifo_rx_bytes()
 
-PUB data_rate{}: curr_rate
+
+PUB data_rate(): curr_rate
 ' Get current data rate
 '   Returns: integer
-    cmd := string("AT+BAUD?")
+    cmd := @"AT+BAUD?"
     cmdresp(cmd)
     curr_rate := st.atoi(st.getfield(@_rxbuff, 2, ":"))
     return lookupz(curr_rate: 9600, 19200, 38400, 57600, 115200, 4800, 2400, 1200, 230400)
+
 
 PUB set_data_rate(rate) | cmd, tmp
 ' Set data rate, in bps
@@ -239,34 +259,39 @@ PUB set_data_rate(rate) | cmd, tmp
     case rate
         4800, 9600, 19200, 38400, 57600, 115200, 230400:
             rate := lookdownz(rate: 9600, 19200, 38400, 57600, 115200, 4800, 2400, 1200, 230400)
-            cmd := string("AT+BAUD#")
+            cmd := @"AT+BAUD#"
             st.replacechar(cmd, "#", lookupz(rate: "0".."8"))
             cmdresp(cmd)
 
-PUB dev_id{}: id
+
+PUB dev_id(): id
 ' Read device identification
 '   Returns: $4B4F ('OK')
-    cmdresp(string("AT"))
+    cmdresp(@"AT")
     bytemove(@id, @_rxbuff, 2)
 
-PUB last_connected_dev{}: ptr_addr
+
+PUB last_connected_dev(): ptr_addr
 ' Get last connected device's address
 '   Returns: pointer to string containing MAC address of device
-    cmdresp(string("AT+RADD?"))
+    cmdresp(@"AT+RADD?")
     return st.getfield(@_rxbuff, 2, ":")
+
 
 PUB node_addr(addr): ptr_addr
 ' Read device node address
 '   Returns: pointer to string containing 48-bit MAC address
 '   NOTE: Parameter is unused - exists only for API compatibility with other wireless drivers
-    cmdresp(string("AT+ADDR?"))
+    cmdresp(@"AT+ADDR?")
     return st.getfield(@_rxbuff, 2, ":")
 
-PUB node_name{}: ptr_name | cmd, tmp
+
+PUB node_name(): ptr_name | cmd, tmp
 ' Get BLE module current name
 '   Returns: pointer to string
-    cmdresp(string("AT+NAME?"))
+    cmdresp(@"AT+NAME?")
     return st.getfield(@_rxbuff, 2, ":")
+
 
 PUB set_node_name(ptr_name): curr_name | cmd, tmp
 ' Set BLE module name
@@ -276,50 +301,57 @@ PUB set_node_name(ptr_name): curr_name | cmd, tmp
         $0004..$7FF3:
             if ( (strsize(ptr_name) < 1) or (strsize(ptr_name) > 12) )
                 return                          ' reject invalid length names
-            tmp := string("AT+NAME            ")' template
+            tmp := @"AT+NAME            "       ' template
             ' replace the spaces with the name string
-            st.replace(tmp, string("            "), ptr_name)
+            st.replace(tmp, @"            ", ptr_name)
             cmd := st.strip(tmp)
             cmdresp(cmd)
 
-PUB pin_code{}: curr_pin
+
+PUB pin_code(): curr_pin
 ' Get current PIN code
-    cmdresp(string("AT+PASS?"))
+    cmdresp(@"AT+PASS?")
     return st.atoi(st.getfield(@_rxbuff, 2, ":"))
+
 
 PUB set_pin_code(pin) | cmd
 ' Set PIN code
 '   Valid values: 000000..999999
     case pin
         0..999999:
-            cmd := string("AT+PASS######")
-            st.replace(cmd, string("######"), st.decpadz(pin, 6))
+            cmd := @"AT+PASS######"
+            st.replace(cmd, @"######", st.decpadz(pin, 6))
             cmdresp(cmd)
 
-PUB reset{}
-' Perform soft-reset
-    cmdresp(string("AT+RESET"))
 
-PUB is_resolve_names_ena{}: curr_state
+PUB reset()
+' Perform soft-reset
+    cmdresp(@"AT+RESET")
+
+
+PUB is_resolve_names_ena(): curr_state
 ' Get current setting of BLE MAC address resolution to names during scans
-    cmdresp(string("AT+SHOW?"))
+    cmdresp(@"AT+SHOW?")
     return (st.atoi(st.getfield(@_rxbuff, 2, ":")) == 1)
+
 
 PUB resolve_names(state) | cmd
 ' Resolve BLE MAC addresses to names (when possible) during scans
 '   Valid values: TRUE (-1 or 1), FALSE (0)
     case ||(state)
         0, 1:
-            cmd := string("AT+SHOW#")
-            st.replace(cmd, string("#"), st.dec((state & 1)))
+            cmd := @"AT+SHOW#"
+            st.replace(cmd, @"#", st.dec((state & 1)))
             cmdresp(cmd)
 
-PUB role{}: curr_role | cmd
+
+PUB role(): curr_role | cmd
 ' Get device current role
 '   Returns: integer
-    cmd := string("AT+ROLE?")
+    cmd := @"AT+ROLE?"
     cmdresp(cmd)
     return st.atoi(st.getfield(@_rxbuff, 2, ":"))
+
 
 PUB set_role(r) | cmd
 ' Set device role
@@ -328,21 +360,24 @@ PUB set_role(r) | cmd
 '       CENTRAL (1): Central
     case r
         PERIPHERAL, CENTRAL:
-            cmd := string("AT+ROLE#")
+            cmd := @"AT+ROLE#"
             st.replacechar(cmd, "#", r + "0")
             cmdresp(cmd)
 
-PUB rx_check{}: r
+
+PUB getchar_noblock(): r
 ' Check if there's a character received (non-blocking)
 '   Returns:
 '       -1 if no character pending, or ASCII value of pending character
-    return uart.rx_check{}
+    return uart.getchar_noblock()
 
-PUB scan_time{}: curr_tm | cmd
+
+PUB scan_time(): curr_tm | cmd
 ' Get length of scan
 '   Returns: seconds
-    cmdresp(string("AT+SCAN?"))
+    cmdresp(@"AT+SCAN?")
     return st.atoi(st.getfield(@_rxbuff, 2, ":"))
+
 
 PUB set_scan_time(tm) | cmd
 ' Set length of scan, in seconds
@@ -351,19 +386,22 @@ PUB set_scan_time(tm) | cmd
 '       HM-19 (as of v114): 1..5 (default: 3)
     case tm
         1..9:
-            cmd := string("AT+SCAN#")
-            st.replace(cmd, string("#"), st.dec(tm))
+            cmd := @"AT+SCAN#"
+            st.replace(cmd, @"#", st.dec(tm))
             cmdresp(cmd)
+
 
 PUB gets_max(ptr_str, max_len)
 ' Read string from BLE into ptr_str, up to max_len bytes
     uart.gets_max(ptr_str, max_len)
 
-PUB sys_led_mode{}: curr_mode | cmd
+
+PUB sys_led_mode(): curr_mode | cmd
 ' Get current mode of module's system LED pin
-    cmd := string("AT+PIO1?")
+    cmd := @"AT+PIO1?"
     cmdresp(cmd)
     return st.atoi(st.getfield(@_rxbuff, 2, ":"))
+
 
 PUB set_sys_led_mode(mode) | cmd
 ' Set output mode of module's system LED pin
@@ -376,17 +414,19 @@ PUB set_sys_led_mode(mode) | cmd
 '   NOTE: The module must be reset (e.g., reset(), or power cycle) for this to take effect
     case mode
         FLASH, STEADY:
-            cmd := string("AT+PIO1#")
+            cmd := @"AT+PIO1#"
             st.replacechar(cmd, "#", mode + 48)
             cmdresp(cmd)
 
-PUB tx_pwr{}: curr_pwr | cmd
+
+PUB tx_pwr(): curr_pwr | cmd
 ' Get transmit power
 '   Returns: dBm
-    cmd := string("AT+POWE?")
+    cmd := @"AT+POWE?"
     cmdresp(cmd)
     curr_pwr := st.atoi(st.getfield(@_rxbuff, 2, ":"))
     return lookupz(curr_pwr: -23, -6, 0, 6)
+
 
 PUB set_tx_pwr(pwr) | cmd
 ' Set transmit power, in dBm
@@ -394,26 +434,30 @@ PUB set_tx_pwr(pwr) | cmd
     case pwr
         -23, -6, 0, 6:
             pwr := lookdownz(pwr: -23, -6, 0, 6)
-            cmd := string("AT+POWE#")
+            cmd := @"AT+POWE#"
             st.replacechar(cmd, "#", lookupz(pwr & 3: "0".."3"))
             cmdresp(cmd)
 
-PUB unpair{}
+
+PUB unpair()
 ' Remove pairing/bonding information
 '   NOTE: The module must be reset (e.g., Reset(), or power cycle)
 '       for this to take effect
-    cmdresp(string("AT+ERASE"))
+    cmdresp(@"AT+ERASE")
 
-PUB version{}: ver
+
+PUB version(): ver
 ' Get firmware version
-    cmdresp(string("AT+VERS?"))
+    cmdresp(@"AT+VERS?")
     return st.atoi(st.right(@_rxbuff, 3))
 
-PUB work_mode{}: curr_mode | cmd
+
+PUB work_mode(): curr_mode | cmd
 ' Get device current working mode
-    cmd := string("AT+IMME?")
+    cmd := @"AT+IMME?"
     cmdresp(cmd)
     return st.atoi(st.getfield(@_rxbuff, 2, ":"))
+
 
 PUB set_work_mode(mode) | cmd
 ' Set device working mode
@@ -422,34 +466,37 @@ PUB set_work_mode(mode) | cmd
 '       IDLE (1): idle; don't do anything until commanded
     case mode
         0, 1:
-            cmd := string("AT+IMME#")
+            cmd := @"AT+IMME#"
             st.replacechar(cmd, "#", mode + "0")
             cmdresp(cmd)
+
 
 PRI cmdresp(ptr_cmdstr): resp | i, chr
 ' Send command and store the response
     bytefill(@_rxbuff, 0, BUFFSZ)
-    uart.flush_rx{}
+    uart.flush_rx()
     _tries := 1
     repeat                                      ' keep sending the cmd to the
         puts(ptr_cmdstr)                        '   module, and wait for resp.
         time.msleep(30)                         ' give the module time to resp.
         _tries++                                ' otherwise, might get hung up
-    until uart.fifo_rx_bytes{}                  ' in this loop
+    until uart.fifo_rx_bytes()                  ' in this loop
 
     i := chr := 0
     repeat
-        if (chr := lookdown(uart.rx_check{}: 1..255))
+        chr := uart.getchar_noblock()
+        if ( (chr => 1) and (chr =< 255) )
             _rxbuff[i++] := chr
             time.msleep(2)                      ' wait, to mitigate underflow
-    while chr
+    while ( chr => 0 )
+
 
 ' Pull in the common terminal type methods so they can be used over the air
 #include "terminal.common.spinh"
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

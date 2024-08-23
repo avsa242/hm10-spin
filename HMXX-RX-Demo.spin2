@@ -1,12 +1,12 @@
 {
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
     Filename:       HMXX-RX-Demo.spin2
     Description:    Simple receive demo for HM-xx BLE modules
     Author:         Jesse Burt
     Started:        Feb 19, 2024
     Updated:        Feb 19, 2024
     Copyright (c) 2024 - See end of file for terms of use.
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 }
 
 CON
@@ -18,7 +18,6 @@ CON
 OBJ
 
     cfg:    "boardcfg.p2eval"
-    time:   "time"
     ser:    "com.serial.terminal.ansi" | SER_BAUD=2_000_000
     ble:    "wireless.bluetooth-le.hmxx" | RXPIN=0, TXPIN=1, BLE_BAUD=9600
     ' BLE_BAUD: 4800, 9600, 19200, 38400, 57600, 115200, 230400
@@ -35,6 +34,7 @@ PUB main()
 PUB setup()
 
     ser.start()
+
     ser.clear()
     ser.strln(@"Serial terminal started")
 
